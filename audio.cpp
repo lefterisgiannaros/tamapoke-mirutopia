@@ -125,7 +125,7 @@ static const TuneDef MUSIC[] = {
   { M_VICTORY, 5, false },
 };
 static volatile uint8_t gMusic = MUS_NONE;
-static volatile uint8_t gVol = 7;
+static volatile uint8_t gVol = 3;
 
 static int16_t buf[256 * 2];  // estéreo intercalado (L=R)
 static int16_t mono[256];
@@ -186,10 +186,12 @@ static void audioTask(void *) {
   uint32_t at1 = 0, at2 = 0, clock = 0;
   uint8_t playing = MUS_NONE;
   bool ampOn = false;
+  uint32_t ampHoldUntil = 0;
 
   for (;;) {
     uint8_t m = gMusic;
-    bool wantAudio = (m != MUS_NONE) || gSyn.busy();
+    bool wantAudio = (m != MUS_NONE) || gSyn.busy() ||
+                     (ampOn && (int32_t)(millis() - ampHoldUntil) < 0);
     if (!gOn || !gReady) { gSyn.allOff(); m = MUS_NONE; wantAudio = false; }
 
     // An effect always wins the melody voice. With three voices a cue that
@@ -197,7 +199,12 @@ static void audioTask(void *) {
     // simpler and the right priority.
     if (xQueueReceive(gQ, &id, wantAudio ? 0 : pdMS_TO_TICKS(40)) == pdTRUE) {
       if (gOn && gReady && id < SFX_COUNT) {
-        if (!ampOn) { digitalWrite(PA, HIGH); delay(6); ampOn = true; }
+        if (!ampOn) {
+          digitalWrite(PA, HIGH);
+          delay(25);   // PA needs this; a 35 ms TAP otherwise plays into silence
+          ampOn = true;
+        }
+        ampHoldUntil = millis() + 1500;
         const SfxDef &d = SFX[id];
         for (uint8_t i = 0; i < d.len; i++) {
           uint16_t f = hzToGb(d.n[i].f);
@@ -215,13 +222,21 @@ static void audioTask(void *) {
     }
 
     if (m == MUS_NONE) {
-      if (ampOn && !gSyn.busy()) { digitalWrite(PA, LOW); ampOn = false; }
+      if (ampOn && !gSyn.busy() && (int32_t)(millis() - ampHoldUntil) >= 0) {
+        digitalWrite(PA, LOW);
+        ampOn = false;
+      }
       playing = MUS_NONE; mi1 = mi2 = 0; at1 = at2 = clock = 0;
       continue;
     }
 
     if (m != playing) { playing = m; mi1 = mi2 = 0; at1 = at2 = clock = 0; }
-    if (!ampOn) { digitalWrite(PA, HIGH); delay(6); ampOn = true; }
+    if (!ampOn) {
+      digitalWrite(PA, HIGH);
+      delay(25);
+      ampOn = true;
+    }
+    ampHoldUntil = millis() + 1500;
 
     // 0 = the gym leader battle, 3 = the victory fanfare. Winning used to play
     // index 2, which is the WILD BATTLE theme -- so a win sounded like the fight
@@ -279,10 +294,18 @@ void audioBegin() {
   if (!es8311Init()) { Serial.println("ES8311 no responde (audio off)"); return; }
 
   Preferences p;
-  p.begin("tamapoke", true);
+  p.begin("tamapoke", false);
   gOn = p.getBool("snd", true);
-  gVol = p.getUChar("vol", 7);
-  if (gVol > 10) gVol = 7;
+  gVol = p.getUChar("vol", 3);
+  if (gVol > 10) gVol = 3;
+  // Old factory default was 7 and it is too loud on this speaker. First boot
+  // of the quieter build drops that default to 3; a volume they set themselves
+  // is left alone.
+  if (!p.getBool("volq", false)) {
+    if (!p.isKey("vol") || gVol == 7) gVol = 3;
+    p.putUChar("vol", gVol);
+    p.putBool("volq", true);
+  }
   p.end();
 
   gReady = true;

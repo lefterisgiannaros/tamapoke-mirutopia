@@ -1,5 +1,5 @@
 @echo off
-title TamaPoke 3.13.0 local installer
+title TamaPoke 3.13.3 local installer
 cd /d "%~dp0"
 echo Starting installer at http://localhost:8001
 echo Close Arduino Serial Monitor before flashing.

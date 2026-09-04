@@ -68,8 +68,7 @@ Serial: `BACKUP` · `SAVEINFO` · `SDRESTORE` · `GET /saves/latest.tkps`
 Cloud backup is not built in. Download the `.tkps` from the installer and keep
 it in Drive / email.
 
-Older unused trees (Expanded, v1.5-251) live in `old-unused/` on this machine
-and are not part of the GitHub repo.
+Older unused trees live in `unused/` on this machine and are not on GitHub.
 
 > ### 🙏 This is a fork of [**socquique/TamaPoke**](https://github.com/socquique/TamaPoke) by **Quique Tortosa**
 >

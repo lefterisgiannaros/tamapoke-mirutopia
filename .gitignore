@@ -1,10 +1,7 @@
 # artefactos de compilacion
 build/
-old-unused/
+unused/
 .claude/
-# leftover empty dirs if a local python server still has them locked
-TamaPoke-v15-251/
-TAMAPOKEALL/
 
 # Local sprite bundles (~230 MB). The installer falls back to the public
 # DylanPDao GitHub release if they are missing. Drop them in web/ to install offline.

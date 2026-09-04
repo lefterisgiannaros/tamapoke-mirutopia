@@ -67,7 +67,8 @@ def fetch(url, dest):
     if os.path.exists(dest):
         return True
     os.makedirs(os.path.dirname(dest), exist_ok=True)
-    r = subprocess.run(['curl', '-fsSL', '--retry', '2', '-A', 'Mozilla/5.0',
+    curl = 'curl.exe' if os.name == 'nt' else 'curl'
+    r = subprocess.run([curl, '-fsSL', '--retry', '2', '-A', 'Mozilla/5.0',
                         '-o', dest, url], capture_output=True)
     if r.returncode != 0:
         if os.path.exists(dest):

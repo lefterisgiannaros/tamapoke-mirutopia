@@ -1,6 +1,6 @@
 # TamaPoke web installer
 
-Local page that flashes firmware 3.13.0 and pushes sprites / art / save files
+Local page that flashes firmware 3.13.1 and pushes sprites / art / save files
 over Web Serial. Chrome or Edge. Serve from this folder:
 
 ```bat

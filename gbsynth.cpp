@@ -64,8 +64,9 @@ bool GbSynth::busy() const {
 void GbSynth::render(int16_t *out, size_t n, uint8_t master) {
   if (master > 10) master = 10;
   // Headroom for three voices at once: each can reach 15, and the sum is
-  // divided so a full chord cannot clip. 1500 per unit of master keeps a single
-  // voice comfortably audible without the mix distorting.
+  // divided so a full chord cannot clip. 1500 per unit of master is the quiet
+  // factory mix -- do not bump this to "fix" missing clicks. Short SFX fail
+  // because the speaker amp was sleeping, not because the mix is too quiet.
   const int32_t scale = (int32_t)master * 150;
   for (size_t i = 0; i < n; i++) {
     int32_t mix = 0;

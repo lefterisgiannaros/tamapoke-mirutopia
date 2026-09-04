@@ -36,7 +36,7 @@
 <body>
 <div class="wrap">
   <h1>TamaPoke</h1>
-  <p class="sub">Gift build <b>3.13.0</b> — 809 Pokémon (Kanto–Alola), splash, Prof. Tangrowth,
+  <p class="sub">Gift build <b>3.13.3</b> — 809 Pokémon (Kanto–Alola), splash, Prof. Tangrowth,
      walk bonus, SD save backup. Local installer — Chrome or Edge.</p>
 
   <p class="unsupported" id="unsupported">
@@ -70,6 +70,8 @@
     <p>Put a microSD into the board. Press <b>Connect board</b>, then a region.
        Kanto first is fine; add others later.</p>
     <p class="note">Kanto is ~40 MB and takes about 10–15 minutes over USB. Leave the tab open.</p>
+    <p class="note">Unova / Kalos / Alola are served from this folder, not GitHub
+       (those packs were never published). If a button says missing, the pack is still building.</p>
     <p class="note">Close the step-1 install tab first (only one program can use the port).</p>
     <div class="row">
       <button id="connect">Connect board</button>
@@ -215,37 +217,28 @@ document.getElementById('connect').onclick = async () => {
   } catch (e) { log('Could not connect: ' + e.message); }
 };
 
-const PAK_RELEASE = 'https://github.com/DylanPDao/TamaPoke/releases/latest/download';
-
-function pakUrls(region) {
-  return [`sprites-${region}.pak`, `${PAK_RELEASE}/sprites-${region}.pak`];
-}
-
 async function fetchPak(region) {
-  let last;
-  for (const url of pakUrls(region)) {
-    try {
-      const resp = await fetch(url);
-      if (resp.ok) return await resp.arrayBuffer();
-      last = new Error('HTTP ' + resp.status);
-    } catch (e) { last = e; }
+  // Local file only. GitHub release assets send no CORS headers, so a
+  // browser fetch of Dylan's packs fails as "Failed to fetch" even when
+  // the file exists -- and Unova/Kalos/Alola were never uploaded there.
+  const url = `sprites-${region}.pak`;
+  const resp = await fetch(url);
+  if (!resp.ok) {
+    throw new Error(resp.status === 404
+      ? `sprites-${region}.pak is not in the installer folder yet`
+      : ('HTTP ' + resp.status));
   }
-  throw last || new Error('not found');
+  return await resp.arrayBuffer();
 }
 
 async function probeRegions() {
   for (const b of document.querySelectorAll('[data-region]')) {
     const region = b.dataset.region;
-    let found = false;
-    for (const url of pakUrls(region)) {
-      try {
-        const r = await fetch(url, { method: 'HEAD' });
-        if (r.ok) { found = true; break; }
-      } catch (e) { /* try the next */ }
-    }
-    if (!found) {
-      b.disabled = true;
-      b.textContent = b.textContent.replace(/ \(.*\)$/, '') + ' — not published yet';
+    try {
+      const r = await fetch(`sprites-${region}.pak`, { method: 'HEAD' });
+      if (!r.ok) throw new Error('missing');
+    } catch (e) {
+      b.title = 'Pack file missing from this installer';
     }
   }
 }
